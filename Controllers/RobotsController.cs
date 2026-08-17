@@ -21,6 +21,16 @@ public class RobotsController : ControllerBase
         int page = 1,
         int pageSize = 10)
     {
+        if (page < 1)
+        {
+            return BadRequest("Page must be greater than or equal to 1.");
+        }
+
+        if (pageSize < 1)
+        {
+            return BadRequest("Page size must be greater than or equal to 1.");
+        }
+
         IEnumerable<Robot> robots =
             await _robotService.GetAllAsync(status, page, pageSize);
 
