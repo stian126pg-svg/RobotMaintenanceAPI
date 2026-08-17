@@ -36,7 +36,7 @@ public class RobotsController : ControllerBase
 
         return Ok(robots);
     }
-    
+
     [HttpGet("{id}")]
     public async Task<ActionResult<Robot>> GetRobot(int id)
     {
@@ -59,16 +59,6 @@ public class RobotsController : ControllerBase
             "NeedsMaintenance",
             "OutOfService"
         ];
-
-        if (string.IsNullOrWhiteSpace(robot.Name))
-        {
-            return BadRequest("Name is required.");
-        }
-
-        if (string.IsNullOrWhiteSpace(robot.Model))
-        {
-            return BadRequest("Model is required.");
-        }
 
         if (!validStatuses.Contains(
             robot.Status,
