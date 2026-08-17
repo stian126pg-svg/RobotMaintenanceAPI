@@ -36,4 +36,16 @@ public class RobotsController : ControllerBase
 
         return Ok(robots);
     }
+    [HttpGet("{id}")]
+    public async Task<ActionResult<Robot>> GetRobot(int id)
+    {
+        Robot? robot = await _robotService.GetByIdAsync(id);
+
+        if (robot is null)
+        {
+            return NotFound();
+        }
+
+        return Ok(robot);
+    }
 }
