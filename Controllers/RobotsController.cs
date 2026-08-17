@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
+using RobotMaintenanceApi.Dtos;
 using RobotMaintenanceApi.Model;
 using RobotMaintenanceApi.Services;
-using RobotMaintenanceApi.Dtos;
 
 namespace RobotMaintenanceApi.Controllers;
 
@@ -17,6 +17,10 @@ public class RobotsController : ControllerBase
     }
 
     [HttpGet]
+    [ProducesResponseType(
+        typeof(IEnumerable<Robot>),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<IEnumerable<Robot>>> GetRobots(
         string? status = null,
         int page = 1,
@@ -24,24 +28,38 @@ public class RobotsController : ControllerBase
     {
         if (page < 1)
         {
-            return BadRequest("Page must be greater than or equal to 1.");
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid page number",
+                detail: "Page must be greater than or equal to 1.");
         }
 
         if (pageSize < 1)
         {
-            return BadRequest("Page size must be greater than or equal to 1.");
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid page size",
+                detail: "Page size must be greater than or equal to 1.");
         }
 
         IEnumerable<Robot> robots =
-            await _robotService.GetAllAsync(status, page, pageSize);
+            await _robotService.GetAllAsync(
+                status,
+                page,
+                pageSize);
 
         return Ok(robots);
     }
 
     [HttpGet("{id}")]
+    [ProducesResponseType(
+        typeof(Robot),
+        StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Robot>> GetRobot(int id)
     {
-        Robot? robot = await _robotService.GetByIdAsync(id);
+        Robot? robot =
+            await _robotService.GetByIdAsync(id);
 
         if (robot is null)
         {
@@ -52,6 +70,10 @@ public class RobotsController : ControllerBase
     }
 
     [HttpPost]
+    [ProducesResponseType(
+        typeof(Robot),
+        StatusCodes.Status201Created)]
+    [ProducesResponseType(StatusCodes.Status400BadRequest)]
     public async Task<ActionResult<Robot>> CreateRobot(
         CreateRobotRequest request)
     {
@@ -69,7 +91,8 @@ public class RobotsController : ControllerBase
             return Problem(
                 statusCode: StatusCodes.Status400BadRequest,
                 title: "Invalid robot status",
-                detail: "Status must be Operational, NeedsMaintenance, or OutOfService.");
+                detail:
+                    "Status must be Operational, NeedsMaintenance, or OutOfService.");
         }
 
         Robot robot = new()
@@ -81,7 +104,8 @@ public class RobotsController : ControllerBase
             NextMaintenance = request.NextMaintenance
         };
 
-        Robot createdRobot = await _robotService.CreateAsync(robot);
+        Robot createdRobot =
+            await _robotService.CreateAsync(robot);
 
         return CreatedAtAction(
             nameof(GetRobot),

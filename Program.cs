@@ -3,10 +3,12 @@ using RobotMaintenanceApi.Services;
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-
 builder.Services.AddControllers();
-// Learn more about configuring OpenAPI at https://aka.ms/aspnet/openapi
+
+// OpenAPI documentation.
 builder.Services.AddOpenApi();
+
+// Dependency injection.
 builder.Services.AddSingleton<IRobotService, RobotService>();
 
 var app = builder.Build();

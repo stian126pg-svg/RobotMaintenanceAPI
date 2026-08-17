@@ -68,7 +68,8 @@ public class RobotService : IRobotService
 
     public Task<Robot?> GetByIdAsync(int id)
     {
-        Robot? robot = _robots.FirstOrDefault(robot => robot.Id == id);
+        Robot? robot =
+            _robots.FirstOrDefault(robot => robot.Id == id);
 
         return Task.FromResult(robot);
     }
