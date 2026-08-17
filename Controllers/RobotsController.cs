@@ -1,6 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using RobotMaintenanceApi.Model;
 using RobotMaintenanceApi.Services;
+using RobotMaintenanceApi.Dtos;
 
 namespace RobotMaintenanceApi.Controllers;
 
@@ -51,7 +52,8 @@ public class RobotsController : ControllerBase
     }
 
     [HttpPost]
-    public async Task<ActionResult<Robot>> CreateRobot(Robot robot)
+    public async Task<ActionResult<Robot>> CreateRobot(
+        CreateRobotRequest request)
     {
         string[] validStatuses =
         [
@@ -61,12 +63,23 @@ public class RobotsController : ControllerBase
         ];
 
         if (!validStatuses.Contains(
-            robot.Status,
+            request.Status,
             StringComparer.OrdinalIgnoreCase))
         {
-            return BadRequest(
-                "Status must be Operational, NeedsMaintenance, or OutOfService.");
+            return Problem(
+                statusCode: StatusCodes.Status400BadRequest,
+                title: "Invalid robot status",
+                detail: "Status must be Operational, NeedsMaintenance, or OutOfService.");
         }
+
+        Robot robot = new()
+        {
+            Name = request.Name,
+            Model = request.Model,
+            Status = request.Status,
+            LastMaintenance = request.LastMaintenance,
+            NextMaintenance = request.NextMaintenance
+        };
 
         Robot createdRobot = await _robotService.CreateAsync(robot);
 
