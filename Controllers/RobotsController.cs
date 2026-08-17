@@ -36,6 +36,7 @@ public class RobotsController : ControllerBase
 
         return Ok(robots);
     }
+    
     [HttpGet("{id}")]
     public async Task<ActionResult<Robot>> GetRobot(int id)
     {
@@ -47,5 +48,41 @@ public class RobotsController : ControllerBase
         }
 
         return Ok(robot);
+    }
+
+    [HttpPost]
+    public async Task<ActionResult<Robot>> CreateRobot(Robot robot)
+    {
+        string[] validStatuses =
+        [
+            "Operational",
+            "NeedsMaintenance",
+            "OutOfService"
+        ];
+
+        if (string.IsNullOrWhiteSpace(robot.Name))
+        {
+            return BadRequest("Name is required.");
+        }
+
+        if (string.IsNullOrWhiteSpace(robot.Model))
+        {
+            return BadRequest("Model is required.");
+        }
+
+        if (!validStatuses.Contains(
+            robot.Status,
+            StringComparer.OrdinalIgnoreCase))
+        {
+            return BadRequest(
+                "Status must be Operational, NeedsMaintenance, or OutOfService.");
+        }
+
+        Robot createdRobot = await _robotService.CreateAsync(robot);
+
+        return CreatedAtAction(
+            nameof(GetRobot),
+            new { id = createdRobot.Id },
+            createdRobot);
     }
 }
