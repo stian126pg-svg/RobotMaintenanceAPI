@@ -5,7 +5,8 @@ namespace RobotMaintenanceApi.Data;
 
 public class RobotDbContext : DbContext
 {
-    public RobotDbContext(DbContextOptions<RobotDbContext> options)
+    public RobotDbContext(
+        DbContextOptions<RobotDbContext> options)
         : base(options)
     {
     }

@@ -1,23 +1,35 @@
+using Microsoft.EntityFrameworkCore;
+using RobotMaintenanceApi.Data;
 using RobotMaintenanceApi.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+// Add Controllers.
 builder.Services.AddControllers();
 
-// OpenAPI documentation.
+// Add OpenAPI document generation.
 builder.Services.AddOpenApi();
 
-// Dependency injection.
-builder.Services.AddSingleton<IRobotService, RobotService>();
+// Add EF Core with SQLite.
+builder.Services.AddDbContext<RobotDbContext>(options =>
+    options.UseSqlite(
+        builder.Configuration.GetConnectionString("RobotDatabase")));
+
+// Register RobotService.
+//
+// Scoped is used instead of Singleton because RobotService
+// will depend on the scoped RobotDbContext.
+builder.Services.AddScoped<IRobotService, RobotService>();
 
 var app = builder.Build();
 
-// Configure the HTTP request pipeline.
+// Development-only API documentation.
 if (app.Environment.IsDevelopment())
 {
+    // Generates /openapi/v1.json
     app.MapOpenApi();
 
+    // Interactive Swagger UI.
     app.UseSwaggerUI(options =>
     {
         options.SwaggerEndpoint(
