@@ -1,22 +1,55 @@
 # Robot Maintenance API
 
-A small REST API built with ASP.NET Core Controllers for managing robot maintenance information.
+A REST API built with ASP.NET Core Controllers for managing robot maintenance data.
 
-The project was created as a backend development assignment focused on REST APIs, controllers, asynchronous method design, validation, HTTP status codes, dependency injection, and API documentation.
+The project was created as part of a backend development assignment focused on REST APIs, HTTP conventions, asynchronous programming, validation, and clean project structure.
+
+The API was later extended with:
+
+- Entity Framework Core
+- SQLite persistence
+- EF Core migrations
+- Seed data
+- OpenAPI documentation
+- Swagger UI
+
+---
 
 ## Features
 
-* Retrieve all robots
-* Retrieve a robot by ID
-* Filter robots by status
-* Paginate GET results
-* Create new robots
-* Validate incoming request data
-* Return appropriate HTTP status codes
-* Structured Problem Details error responses
-* OpenAPI documentation
-* In-memory data storage
-* Task-based service methods prepared for later database integration
+The API currently supports:
+
+- Get all robots
+- Get a robot by ID
+- Filter robots by status
+- Paginate robot results
+- Create new robots
+- Validate incoming data
+- Return appropriate HTTP status codes
+- Return `ProblemDetails` responses for API errors
+- Persist robot data using SQLite
+- Manage the database schema using EF Core migrations
+- Seed initial robot data through EF Core
+- Explore and test the API through Swagger UI
+
+---
+
+## Technology
+
+The project uses:
+
+- C#
+- .NET 10
+- ASP.NET Core Web API
+- Controllers
+- Entity Framework Core
+- SQLite
+- OpenAPI
+- Swagger UI
+- Dependency Injection
+- Async/await
+
+---
 
 ## Project Structure
 
@@ -26,148 +59,178 @@ RobotMaintenanceAPI/
 ├── Controllers/
 │   └── RobotsController.cs
 │
-├── Dtos/
-│   └── CreateRobotRequest.cs
+├── Data/
+│   └── RobotDbContext.cs
+│
+├── Migrations/
+│   ├── InitialCreate
+│   ├── SeedRobots
+│   └── RobotDbContextModelSnapshot.cs
 │
 ├── Model/
-│   └── Robot.cs
+│   ├── Robot.cs
+│   └── CreateRobotRequest.cs
 │
 ├── Services/
 │   ├── IRobotService.cs
 │   └── RobotService.cs
 │
+├── Properties/
+│   └── launchSettings.json
+│
 ├── Program.cs
+├── appsettings.json
+├── appsettings.Development.json
 ├── RobotMaintenanceAPI.csproj
 └── README.md
 ```
 
-## Model
+The local SQLite database file is excluded from Git. The database can be recreated from the EF Core migrations.
 
-A robot contains the following properties:
+---
+
+## Architecture
+
+The application separates HTTP handling, business/data access logic, and persistence.
 
 ```text
-Id
-Name
-Model
-Status
-LastMaintenance
-NextMaintenance
+HTTP Request
+     ↓
+RobotsController
+     ↓
+IRobotService
+     ↓
+RobotService
+     ↓
+RobotDbContext
+     ↓
+Entity Framework Core
+     ↓
+SQLite
+```
+
+The controller is responsible for HTTP concerns such as:
+
+- Routes
+- Query parameters
+- HTTP status codes
+- Validation responses
+
+The service handles robot operations and communicates asynchronously with EF Core.
+
+`RobotDbContext` represents the connection between the application model and the SQLite database.
+
+---
+
+## Robot Model
+
+A robot contains:
+
+- `Id`
+- `Name`
+- `Model`
+- `Status`
+- `LastMaintenance`
+- `NextMaintenance`
+
+Example response:
+
+```json
+{
+  "id": 1,
+  "name": "Atlas",
+  "model": "XR-7",
+  "status": "Operational",
+  "lastMaintenance": "2026-08-01T00:00:00",
+  "nextMaintenance": "2026-11-01T00:00:00"
+}
 ```
 
 Supported statuses are:
 
-```text
-Operational
-NeedsMaintenance
-OutOfService
-```
+- `Operational`
+- `NeedsMaintenance`
+- `OutOfService`
 
-`NextMaintenance` may be null if no future maintenance date has been scheduled.
+---
 
-## API Endpoints
+# API Endpoints
 
-### GET `/api/Robots`
+## GET /api/Robots
 
 Returns a list of robots.
 
 Example:
 
-```bash
-curl http://localhost:5244/api/robots
-```
-
-Successful response:
-
-```text
-200 OK
+```http
+GET /api/Robots
 ```
 
 ### Filtering
 
-The list can be filtered by status.
+Robots can be filtered by status:
 
-Example:
-
-```bash
-curl "http://localhost:5244/api/robots?status=Operational"
+```http
+GET /api/Robots?status=Operational
 ```
 
 Status filtering is case-insensitive.
 
-For example, this also works:
-
-```bash
-curl "http://localhost:5244/api/robots?status=oPeRaTiOnAl"
-```
-
 ### Pagination
 
-The endpoint supports `page` and `pageSize` query parameters.
+The endpoint supports `page` and `pageSize`.
 
-Example:
-
-```bash
-curl "http://localhost:5244/api/robots?page=2&pageSize=2"
+```http
+GET /api/Robots?page=1&pageSize=2
 ```
 
-Default values are:
+Defaults:
 
 ```text
 page = 1
 pageSize = 10
 ```
 
-A page or page size below `1` returns:
-
-```text
-400 Bad Request
-```
+Values below `1` return `400 Bad Request`.
 
 ---
 
-### GET `/api/Robots/{id}`
+## GET /api/Robots/{id}
 
-Returns a single robot by ID.
+Returns one robot by ID.
 
 Example:
 
-```bash
-curl http://localhost:5244/api/robots/3
+```http
+GET /api/Robots/3
 ```
 
-If the robot exists:
+Possible responses:
 
 ```text
 200 OK
-```
-
-If no matching robot exists:
-
-```text
 404 Not Found
 ```
 
+A missing robot returns a `ProblemDetails` response.
+
 ---
 
-### POST `/api/Robots`
+## POST /api/Robots
 
 Creates a new robot.
 
 Example request:
 
-```bash
-curl -X POST http://localhost:5244/api/robots \
-  -H "Content-Type: application/json" \
-  -d '{
-    "name": "Sentinel",
-    "model": "ST-9",
-    "status": "Operational",
-    "lastMaintenance": "2026-08-10T00:00:00",
-    "nextMaintenance": "2026-12-10T00:00:00"
-  }'
+```json
+{
+  "name": "Sentinel",
+  "model": "ST-9",
+  "status": "Operational",
+  "lastMaintenance": "2026-08-10T00:00:00",
+  "nextMaintenance": "2026-12-10T00:00:00"
+}
 ```
-
-The client does not provide the robot ID. The service assigns the next available ID.
 
 A successful request returns:
 
@@ -175,247 +238,307 @@ A successful request returns:
 201 Created
 ```
 
-The response includes the created robot and a `Location` header pointing to the new resource.
+The response contains the newly created robot, including its generated ID.
+
+The `Location` header points to the new resource, for example:
+
+```text
+/api/Robots/5
+```
+
+---
+
+# Validation
+
+Creation uses a separate `CreateRobotRequest` DTO instead of accepting the domain model directly.
+
+Examples of validation include:
+
+- Name is required
+- Model is required
+- Maximum field lengths
+- Status must contain a supported value
+
+Invalid model validation automatically produces an ASP.NET Core validation response using `ProblemDetails`.
 
 Example:
 
-```text
-Location: http://localhost:5244/api/Robots/5
+```json
+{
+  "title": "One or more validation errors occurred.",
+  "status": 400,
+  "errors": {
+    "Name": [
+      "The Name field is required."
+    ]
+  }
+}
 ```
 
-## Validation
+Invalid robot statuses also return `400 Bad Request` using `ProblemDetails`.
 
-`CreateRobotRequest` is used as a DTO for incoming POST requests.
+---
 
-This keeps the API input model separate from the stored `Robot` model and prevents clients from controlling properties such as the robot ID.
+# Asynchronous Design
 
-Data Annotations are used for basic validation:
-
-```csharp
-[Required]
-[StringLength(100)]
-```
-
-`Name`, `Model`, and `Status` are required.
-
-`Name` and `Model` have a maximum length of 100 characters.
-
-The API also performs domain validation for robot status.
-
-Only the following statuses are accepted:
-
-```text
-Operational
-NeedsMaintenance
-OutOfService
-```
-
-Invalid requests return:
-
-```text
-400 Bad Request
-```
-
-Errors are returned using ASP.NET Core Problem Details responses.
-
-## HTTP Status Codes
-
-The API uses the following status codes:
-
-```text
-200 OK
-Successful GET request
-
-201 Created
-Robot successfully created
-
-400 Bad Request
-Invalid query parameters or request data
-
-404 Not Found
-Requested robot does not exist
-```
-
-## Asynchronous Design
-
-Controller actions and service methods use Task-based asynchronous method signatures.
-
-Example:
-
-```csharp
-Task<Robot?> GetByIdAsync(int id);
-```
-
-The current implementation stores robots in memory, so there is no real I/O operation to await.
-
-For this reason, the service currently returns completed tasks using:
-
-```csharp
-Task.FromResult(...)
-```
-
-This keeps the application contract asynchronous without wrapping synchronous work in unnecessary `Task.Run` calls.
-
-If the service is later changed to use a database, these methods can be replaced with genuine asynchronous database operations such as:
-
-```csharp
-await context.Robots.FirstOrDefaultAsync(...);
-```
-
-This allows asynchronous behavior to propagate through the application:
+The API uses Task-based asynchronous methods through the application stack.
 
 ```text
 Controller
-    ↓
+    ↓ await
 Service
-    ↓
-Database
-```
-
-The project does not use `.Result` or `.Wait()` in asynchronous code.
-
-## Dependency Injection
-
-The controller depends on the `IRobotService` interface instead of directly creating a `RobotService`.
-
-The service is registered in `Program.cs`:
-
-```csharp
-builder.Services.AddSingleton<IRobotService, RobotService>();
-```
-
-ASP.NET Core's dependency injection system supplies the service when constructing `RobotsController`.
-
-The singleton lifetime is used because the current service stores data in memory and the same collection needs to remain available between HTTP requests.
-
-## Data Storage
-
-The current implementation uses an in-memory:
-
-```csharp
-List<Robot>
-```
-
-The application starts with several seeded robots.
-
-Because the storage is in memory, robots created with POST only exist while the application is running.
-
-Restarting the application resets the data to the original seeded values.
-
-## Future SQL / Entity Framework Core Support
-
-The project has been structured so that the current in-memory implementation can later be replaced with database-backed storage.
-
-A possible future architecture is:
-
-```text
-Controller
-    ↓
-Service
-    ↓
+    ↓ await
 Entity Framework Core
     ↓
-SQL Database
+SQLite
 ```
 
-A possible SQL table could contain:
+Database operations use EF Core asynchronous methods rather than blocking calls.
+
+This keeps the API ready for real I/O without relying on `.Result` or `.Wait()`.
+
+---
+
+# Entity Framework Core and SQLite
+
+Robot data is persisted in a local SQLite database using Entity Framework Core.
+
+The database schema is managed using migrations.
+
+Current migrations include:
 
 ```text
-Robots
-
-Id               Primary Key
-Name             Required
-Model            Required
-Status           Required
-LastMaintenance  Required
-NextMaintenance  Nullable
+InitialCreate
+SeedRobots
 ```
 
-Entity Framework Core could be used to map the `Robot` model to the database and perform asynchronous database operations.
+`InitialCreate` creates the robot table.
 
-Potential database methods could use:
+`SeedRobots` inserts the initial robot data:
 
-```csharp
-ToListAsync()
-FirstOrDefaultAsync()
-AddAsync()
-SaveChangesAsync()
+- Atlas
+- Hammer
+- Bishop
+- Rustbucket
+
+New robots created through the API are persisted to the database and remain available after the application restarts.
+
+The local SQLite database itself is not committed to Git.
+
+---
+
+# Running the Project
+
+## Requirements
+
+You need:
+
+- .NET 10 SDK
+- EF Core command-line tools
+
+Check your .NET installation:
+
+```powershell
+dotnet --version
 ```
 
-Database configuration and migrations are not included in the current version.
+If the EF CLI tool is not installed:
 
-## OpenAPI
-
-The project uses ASP.NET Core's built-in OpenAPI support.
-
-When running in the Development environment, the generated OpenAPI document is available at:
-
-```text
-http://localhost:5244/openapi/v1.json
+```powershell
+dotnet tool install --global dotnet-ef
 ```
 
-The document describes:
+---
 
-```text
-GET  /api/Robots
-GET  /api/Robots/{id}
-POST /api/Robots
+## 1. Clone the repository
+
+Clone the project and navigate into the project directory.
+
+```powershell
+cd RobotMaintenanceAPI
 ```
 
-including request schemas and expected HTTP response codes.
+## 2. Restore packages
 
-## Running the Project
-
-Requirements:
-
-```text
-.NET 10 SDK
-```
-
-From the project directory:
-
-```bash
+```powershell
 dotnet restore
-dotnet build
+```
+
+## 3. Create/update the local database
+
+Apply the included EF Core migrations:
+
+```powershell
+dotnet ef database update
+```
+
+This creates the local SQLite database and applies the seed data.
+
+## 4. Run the API
+
+```powershell
 dotnet run
 ```
 
-The exact local port is shown in the terminal after startup.
+The development server will print the active address in the terminal.
 
-Example:
+For example:
 
 ```text
-Now listening on: http://localhost:5244
+http://localhost:5244
 ```
 
-Use the port shown by the application if it differs from the examples in this README.
+The exact port may differ depending on the local launch configuration.
 
-## Manual Testing
+---
 
-The API was manually verified using cURL.
+# Swagger UI
 
-Example commands:
+When running in the Development environment, Swagger UI is available at:
 
-```bash
-curl http://localhost:5244/api/robots
+```text
+/swagger
 ```
 
-```bash
-curl http://localhost:5244/api/robots/3
+For the default local configuration this may be:
+
+```text
+http://localhost:5244/swagger
 ```
 
-```bash
-curl "http://localhost:5244/api/robots?status=Operational"
+Swagger provides an interactive interface for:
+
+- Viewing endpoints
+- Entering query parameters
+- Sending GET requests
+- Sending POST requests
+- Inspecting generated requests
+- Viewing response bodies
+- Viewing HTTP status codes
+
+The generated OpenAPI document is available at:
+
+```text
+/openapi/v1.json
 ```
 
-```bash
-curl "http://localhost:5244/api/robots?page=1&pageSize=2"
+---
+
+# Testing with cURL
+
+Swagger UI is the easiest way to explore the API, but the endpoints can also be tested directly.
+
+## Get all robots
+
+```powershell
+curl.exe http://localhost:5244/api/robots
 ```
 
-Using `-i` also displays HTTP response headers:
+## Filter by status
 
-```bash
-curl -i http://localhost:5244/api/robots/3
+```powershell
+curl.exe "http://localhost:5244/api/robots?status=Operational"
 ```
 
-Manual testing verified successful responses as well as validation errors, `404 Not Found`, pagination errors, and `201 Created` responses.
+## Pagination
+
+```powershell
+curl.exe "http://localhost:5244/api/robots?page=1&pageSize=2"
+```
+
+## Get robot by ID
+
+```powershell
+curl.exe -i http://localhost:5244/api/robots/3
+```
+
+## Create a robot
+
+PowerShell example:
+
+```powershell
+curl.exe -i -X POST http://localhost:5244/api/robots `
+  -H "Content-Type: application/json" `
+  -d '{\"name\":\"Sentinel\",\"model\":\"ST-9\",\"status\":\"Operational\",\"lastMaintenance\":\"2026-08-10T00:00:00\",\"nextMaintenance\":\"2026-12-10T00:00:00\"}'
+```
+
+---
+
+# HTTP Status Codes
+
+The API currently uses:
+
+| Status | Meaning |
+|---|---|
+| `200 OK` | Resource successfully retrieved |
+| `201 Created` | New robot successfully created |
+| `400 Bad Request` | Invalid input or query parameters |
+| `404 Not Found` | Requested robot does not exist |
+
+---
+
+# Database Development
+
+When the model changes, a new EF Core migration can be created with:
+
+```powershell
+dotnet ef migrations add MigrationName
+```
+
+Apply pending migrations with:
+
+```powershell
+dotnet ef database update
+```
+
+The migration files are committed to Git so another developer can recreate the database schema locally.
+
+SQLite database files are intentionally excluded through `.gitignore`.
+
+---
+
+# Possible Future Improvements
+
+Possible extensions include:
+
+- PUT/PATCH endpoint for updating robots
+- DELETE endpoint
+- Additional filtering and sorting
+- More advanced maintenance history
+- Repository layer
+- Automated xUnit tests
+- Integration tests
+- SQL Server or PostgreSQL
+- Authentication and authorization
+- Docker support
+
+These are outside the current project scope.
+
+---
+
+## Assignment Goals Covered
+
+This project demonstrates:
+
+- A meaningful domain model
+- ASP.NET Core Controllers
+- GET endpoints
+- POST endpoint
+- Filtering
+- Pagination
+- Input validation
+- HTTP status codes
+- ProblemDetails error responses
+- Asynchronous method design
+- Service layer
+- Dependency injection
+- DTO usage
+- Entity Framework Core
+- SQL-backed persistence with SQLite
+- EF Core migrations
+- Seed data
+- OpenAPI documentation
+- Swagger UI
+- Manual API verification
+
+The project now covers both the core assignment requirements and several of the optional extensions.
