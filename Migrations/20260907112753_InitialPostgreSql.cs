@@ -1,5 +1,6 @@
 ﻿using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 
 #nullable disable
 
@@ -8,11 +9,29 @@ using Microsoft.EntityFrameworkCore.Migrations;
 namespace RobotMaintenanceAPI.Migrations
 {
     /// <inheritdoc />
-    public partial class SeedRobots : Migration
+    public partial class InitialPostgreSql : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
         {
+            migrationBuilder.CreateTable(
+                name: "Robots",
+                columns: table => new
+                {
+                    Id = table.Column<int>(type: "integer", nullable: false)
+                        .Annotation("Npgsql:IdentitySequenceOptions", "'5', '1', '', '', 'False', '1'")
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    Name = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Model = table.Column<string>(type: "character varying(100)", maxLength: 100, nullable: false),
+                    Status = table.Column<string>(type: "text", nullable: false),
+                    LastMaintenance = table.Column<DateTime>(type: "timestamp without time zone", nullable: false),
+                    NextMaintenance = table.Column<DateTime>(type: "timestamp without time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_Robots", x => x.Id);
+                });
+
             migrationBuilder.InsertData(
                 table: "Robots",
                 columns: new[] { "Id", "LastMaintenance", "Model", "Name", "NextMaintenance", "Status" },
@@ -28,25 +47,8 @@ namespace RobotMaintenanceAPI.Migrations
         /// <inheritdoc />
         protected override void Down(MigrationBuilder migrationBuilder)
         {
-            migrationBuilder.DeleteData(
-                table: "Robots",
-                keyColumn: "Id",
-                keyValue: 1);
-
-            migrationBuilder.DeleteData(
-                table: "Robots",
-                keyColumn: "Id",
-                keyValue: 2);
-
-            migrationBuilder.DeleteData(
-                table: "Robots",
-                keyColumn: "Id",
-                keyValue: 3);
-
-            migrationBuilder.DeleteData(
-                table: "Robots",
-                keyColumn: "Id",
-                keyValue: 4);
+            migrationBuilder.DropTable(
+                name: "Robots");
         }
     }
 }

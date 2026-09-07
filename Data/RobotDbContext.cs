@@ -17,6 +17,19 @@ public class RobotDbContext : DbContext
     {
         base.OnModelCreating(modelBuilder);
 
+        modelBuilder.Entity<Robot>()
+            .Property(robot => robot.Id)
+            .UseIdentityByDefaultColumn()
+            .HasIdentityOptions(startValue: 5);
+
+        modelBuilder.Entity<Robot>()
+            .Property(robot => robot.LastMaintenance)
+            .HasColumnType("timestamp without time zone");
+
+        modelBuilder.Entity<Robot>()
+            .Property(robot => robot.NextMaintenance)
+            .HasColumnType("timestamp without time zone");
+
         modelBuilder.Entity<Robot>().HasData(
             new Robot
             {

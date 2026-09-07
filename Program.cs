@@ -10,10 +10,17 @@ builder.Services.AddControllers();
 // Add OpenAPI document generation.
 builder.Services.AddOpenApi();
 
-// Add EF Core with SQLite.
+string connectionString =
+    builder.Configuration.GetConnectionString("RobotDatabase")
+    ?? throw new InvalidOperationException(
+        "Connection string 'RobotDatabase' was not configured.");
+
+// Add EF Core with PostgreSQL.
 builder.Services.AddDbContext<RobotDbContext>(options =>
-    options.UseSqlite(
-        builder.Configuration.GetConnectionString("RobotDatabase")));
+    options.UseNpgsql(
+        connectionString,
+        postgreSqlOptions =>
+            postgreSqlOptions.EnableRetryOnFailure()));
 
 // Register RobotService.
 //
