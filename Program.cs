@@ -17,11 +17,21 @@ builder.Services.AddDbContext<RobotDbContext>(options =>
 
 // Register RobotService.
 //
-// Scoped is used instead of Singleton because RobotService
-// will depend on the scoped RobotDbContext.
+// Scoped is used because both RobotService and RobotDbContext
+// should exist for the lifetime of a single request.
 builder.Services.AddScoped<IRobotService, RobotService>();
 
 var app = builder.Build();
+
+// Apply pending database migrations when the API starts.
+using (IServiceScope scope = app.Services.CreateScope())
+{
+    RobotDbContext dbContext =
+        scope.ServiceProvider
+            .GetRequiredService<RobotDbContext>();
+
+    await dbContext.Database.MigrateAsync();
+}
 
 // Development-only API documentation.
 if (app.Environment.IsDevelopment())
