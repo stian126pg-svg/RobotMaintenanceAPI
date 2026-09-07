@@ -31,5 +31,20 @@ services:
       postgres:
         condition: service_healthy
 
+  pgadmin:
+    image: dpage/pgadmin4:9.17
+    environment:
+      PGADMIN_DEFAULT_EMAIL: admin@robotmaintenance.com
+      PGADMIN_DEFAULT_PASSWORD: robotadminpassword
+      PGADMIN_DISABLE_POSTFIX: "true"
+    ports:
+      - "5050:80"
+    volumes:
+      - pgadmin-data:/var/lib/pgadmin
+    depends_on:
+      postgres:
+        condition: service_healthy
+
 volumes:
   robot-postgres-data:
+  pgadmin-data:
