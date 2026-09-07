@@ -1,0 +1,12 @@
+**/bin/
+**/obj/
+
+.git/
+.vs/
+.vscode/
+
+.env
+
+*.db
+*.db-shm
+*.db-wal
