@@ -1,83 +1,64 @@
 # Robot Maintenance API
 
-A REST API built with ASP.NET Core Controllers for managing robot maintenance data.
+A REST API for managing robot maintenance data.
 
-The project was created as part of a backend development assignment focused on REST APIs, HTTP conventions, asynchronous programming, validation, and clean project structure.
-
-The API was later extended with:
-
-- Entity Framework Core
-- SQLite persistence
-- EF Core migrations
-- Seed data
-- OpenAPI documentation
-- Swagger UI
-
----
+The application is built with ASP.NET Core Controllers and uses Entity Framework Core with PostgreSQL for persistent storage. Docker Compose runs the API, PostgreSQL, and pgAdmin as connected containers.
 
 ## Features
 
-The API currently supports:
-
-- Get all robots
-- Get a robot by ID
+- Retrieve all robots
+- Retrieve a robot by ID
 - Filter robots by status
 - Paginate robot results
-- Create new robots
-- Validate incoming data
+- Register new robots
+- Validate incoming requests
 - Return appropriate HTTP status codes
-- Return `ProblemDetails` responses for API errors
-- Persist robot data using SQLite
-- Manage the database schema using EF Core migrations
-- Seed initial robot data through EF Core
-- Explore and test the API through Swagger UI
+- Persist robot data in PostgreSQL
+- Apply EF Core migrations automatically
+- Seed initial robot data
+- Inspect stored data through pgAdmin
+- Monitor API and PostgreSQL container health
+- Preserve data through a Docker volume
 
----
-
-## Technology
-
-The project uses:
+## Technologies
 
 - C#
 - .NET 10
 - ASP.NET Core Web API
-- Controllers
 - Entity Framework Core
-- SQLite
-- OpenAPI
-- Swagger UI
+- PostgreSQL
+- Npgsql
+- Docker
+- Docker Compose
+- pgAdmin
+- OpenAPI and Swagger UI
 - Dependency Injection
 - Async/await
 
----
-
-## Project Structure
+## Project structure
 
 ```text
 RobotMaintenanceAPI/
-│
 ├── Controllers/
 │   └── RobotsController.cs
-│
 ├── Data/
 │   └── RobotDbContext.cs
-│
-├── Migrations/
-│   ├── InitialCreate
-│   ├── SeedRobots
-│   └── RobotDbContextModelSnapshot.cs
-│
-├── Model/
-│   ├── Robot.cs
+├── Dtos/
 │   └── CreateRobotRequest.cs
-│
+├── Migrations/
+│   ├── InitialPostgreSql
+│   └── RobotDbContextModelSnapshot.cs
+├── Model/
+│   └── Robot.cs
 ├── Services/
 │   ├── IRobotService.cs
 │   └── RobotService.cs
-│
 ├── Properties/
 │   └── launchSettings.json
-│
+├── .dockerignore
+├── .gitignore
+├── docker-compose.yaml
+├── Dockerfile
 ├── Program.cs
 ├── appsettings.json
 ├── appsettings.Development.json
@@ -85,44 +66,33 @@ RobotMaintenanceAPI/
 └── README.md
 ```
 
-The local SQLite database file is excluded from Git. The database can be recreated from the EF Core migrations.
-
----
-
 ## Architecture
 
-The application separates HTTP handling, business/data access logic, and persistence.
+The application separates HTTP handling, data operations, and persistence:
 
 ```text
-HTTP Request
-     ↓
+HTTP request
+    ↓
 RobotsController
-     ↓
+    ↓
 IRobotService
-     ↓
+    ↓
 RobotService
-     ↓
+    ↓
 RobotDbContext
-     ↓
+    ↓
 Entity Framework Core
-     ↓
-SQLite
+    ↓
+PostgreSQL
 ```
 
-The controller is responsible for HTTP concerns such as:
+`RobotsController` handles routes, query parameters, validation responses, and HTTP status codes.
 
-- Routes
-- Query parameters
-- HTTP status codes
-- Validation responses
+`RobotService` performs robot operations asynchronously through Entity Framework Core.
 
-The service handles robot operations and communicates asynchronously with EF Core.
+`RobotDbContext` represents the connection between the application model and PostgreSQL.
 
-`RobotDbContext` represents the connection between the application model and the SQLite database.
-
----
-
-## Robot Model
+## Robot model
 
 A robot contains:
 
@@ -133,7 +103,7 @@ A robot contains:
 - `LastMaintenance`
 - `NextMaintenance`
 
-Example response:
+Example:
 
 ```json
 {
@@ -146,399 +116,345 @@ Example response:
 }
 ```
 
-Supported statuses are:
+Supported status values are:
 
 - `Operational`
 - `NeedsMaintenance`
 - `OutOfService`
 
----
+# API endpoints
 
-# API Endpoints
+## GET /api/robots
 
-## GET /api/Robots
+Returns a collection of robots.
 
-Returns a list of robots.
+```http
+GET /api/robots
+```
+
+Optional query parameters:
+
+| Parameter | Default | Description |
+|---|---:|---|
+| `status` | None | Filters robots by status |
+| `page` | `1` | Selects the result page |
+| `pageSize` | `10` | Controls the number of results |
+
+Filtering is case-insensitive.
 
 Example:
 
 ```http
-GET /api/Robots
+GET /api/robots?status=Operational&page=1&pageSize=10
 ```
 
-### Filtering
+A `page` or `pageSize` value below `1` returns `400 Bad Request`.
 
-Robots can be filtered by status:
-
-```http
-GET /api/Robots?status=Operational
-```
-
-Status filtering is case-insensitive.
-
-### Pagination
-
-The endpoint supports `page` and `pageSize`.
-
-```http
-GET /api/Robots?page=1&pageSize=2
-```
-
-Defaults:
-
-```text
-page = 1
-pageSize = 10
-```
-
-Values below `1` return `400 Bad Request`.
-
----
-
-## GET /api/Robots/{id}
+## GET /api/robots/{id}
 
 Returns one robot by ID.
 
-Example:
-
 ```http
-GET /api/Robots/3
+GET /api/robots/3
 ```
 
 Possible responses:
 
-```text
-200 OK
-404 Not Found
-```
+- `200 OK`
+- `404 Not Found`
 
-A missing robot returns a `ProblemDetails` response.
-
----
-
-## POST /api/Robots
+## POST /api/robots
 
 Creates a new robot.
+
+```http
+POST /api/robots
+Content-Type: application/json
+```
 
 Example request:
 
 ```json
 {
-  "name": "Sentinel",
-  "model": "ST-9",
+  "name": "Vaultkeeper",
+  "model": "PG-17",
   "status": "Operational",
-  "lastMaintenance": "2026-08-10T00:00:00",
-  "nextMaintenance": "2026-12-10T00:00:00"
+  "lastMaintenance": "2026-09-07T00:00:00",
+  "nextMaintenance": "2027-01-07T00:00:00"
 }
 ```
 
-A successful request returns:
+A successful request returns `201 Created`.
 
-```text
-201 Created
-```
-
-The response contains the newly created robot, including its generated ID.
-
-The `Location` header points to the new resource, for example:
-
-```text
-/api/Robots/5
-```
-
----
+The response contains the created robot and its generated ID. The `Location` header points to the new resource.
 
 # Validation
 
-Creation uses a separate `CreateRobotRequest` DTO instead of accepting the domain model directly.
+Robot creation uses a `CreateRobotRequest` DTO rather than accepting the database entity directly.
 
-Examples of validation include:
+Validation includes:
 
 - Name is required
 - Model is required
 - Maximum field lengths
 - Status must contain a supported value
 
-Invalid model validation automatically produces an ASP.NET Core validation response using `ProblemDetails`.
+Invalid input returns `400 Bad Request`. Validation errors and invalid status values use ASP.NET Core problem responses.
 
-Example:
+# Asynchronous design
 
-```json
-{
-  "title": "One or more validation errors occurred.",
-  "status": 400,
-  "errors": {
-    "Name": [
-      "The Name field is required."
-    ]
-  }
-}
-```
+Database operations use asynchronous EF Core methods such as:
 
-Invalid robot statuses also return `400 Bad Request` using `ProblemDetails`.
+- `ToListAsync`
+- `FirstOrDefaultAsync`
+- `SaveChangesAsync`
+- `MigrateAsync`
 
----
+The application does not use blocking calls such as `.Result` or `.Wait()`.
 
-# Asynchronous Design
+# PostgreSQL and Entity Framework Core
 
-The API uses Task-based asynchronous methods through the application stack.
+Robot data is stored in PostgreSQL through Entity Framework Core and the Npgsql provider.
 
-```text
-Controller
-    ↓ await
-Service
-    ↓ await
-Entity Framework Core
-    ↓
-SQLite
-```
-
-Database operations use EF Core asynchronous methods rather than blocking calls.
-
-This keeps the API ready for real I/O without relying on `.Result` or `.Wait()`.
-
----
-
-# Entity Framework Core and SQLite
-
-Robot data is persisted in a local SQLite database using Entity Framework Core.
-
-The database schema is managed using migrations.
-
-Current migrations include:
-
-```text
-InitialCreate
-SeedRobots
-```
-
-`InitialCreate` creates the robot table.
-
-`SeedRobots` inserts the initial robot data:
+The PostgreSQL migration creates the `Robots` table and inserts four seed robots:
 
 - Atlas
 - Hammer
 - Bishop
 - Rustbucket
 
-New robots created through the API are persisted to the database and remain available after the application restarts.
+Pending migrations are automatically applied when the API starts:
 
-The local SQLite database itself is not committed to Git.
+```csharp
+await dbContext.Database.MigrateAsync();
+```
 
----
+New robots created through the API remain available after the API container is restarted or recreated.
 
-# Running the Project
+# Docker Compose
+
+Docker Compose runs three services:
+
+| Service | Purpose | Address |
+|---|---|---|
+| `api` | Robot Maintenance API | `http://localhost:8080` |
+| `postgres` | PostgreSQL database | `localhost:5432` |
+| `pgadmin` | PostgreSQL administration interface | `http://localhost:5050` |
+
+Docker creates an internal network where the API and pgAdmin reach PostgreSQL using the service name `postgres`.
+
+Database files are stored in the named volume `robot-postgres-data`.
 
 ## Requirements
 
-You need:
+- Docker Desktop
+- Docker Compose
 
-- .NET 10 SDK
-- EF Core command-line tools
-
-Check your .NET installation:
+## Start the application
 
 ```powershell
-dotnet --version
+docker compose up -d --build
 ```
 
-If the EF CLI tool is not installed:
+Check the services:
 
 ```powershell
-dotnet tool install --global dotnet-ef
+docker compose ps
 ```
 
----
+The API and PostgreSQL services should both report `healthy`.
 
-## 1. Clone the repository
-
-Clone the project and navigate into the project directory.
+## Stop the application
 
 ```powershell
-cd RobotMaintenanceAPI
+docker compose down
 ```
 
-## 2. Restore packages
+This removes the containers and network but preserves the named volumes.
+
+Do not use the following command unless you intentionally want to delete all stored database and pgAdmin data:
 
 ```powershell
-dotnet restore
+docker compose down -v
 ```
 
-## 3. Create/update the local database
+# Health checks
 
-Apply the included EF Core migrations:
+PostgreSQL uses `pg_isready` to verify that the database accepts connections.
+
+The API container calls:
+
+```http
+GET /health
+```
+
+The API health endpoint confirms that the application is responding. PostgreSQL health is checked separately by its own container health check.
+
+Verify the API manually:
 
 ```powershell
-dotnet ef database update
+Invoke-RestMethod `
+    -Uri "http://localhost:8080/health"
 ```
 
-This creates the local SQLite database and applies the seed data.
-
-## 4. Run the API
-
-```powershell
-dotnet run
-```
-
-The development server will print the active address in the terminal.
-
-For example:
+Expected response:
 
 ```text
-http://localhost:5244
+Healthy
 ```
 
-The exact port may differ depending on the local launch configuration.
-
----
-
-# Swagger UI
-
-When running in the Development environment, Swagger UI is available at:
-
-```text
-/swagger
-```
-
-For the default local configuration this may be:
-
-```text
-http://localhost:5244/swagger
-```
-
-Swagger provides an interactive interface for:
-
-- Viewing endpoints
-- Entering query parameters
-- Sending GET requests
-- Sending POST requests
-- Inspecting generated requests
-- Viewing response bodies
-- Viewing HTTP status codes
-
-The generated OpenAPI document is available at:
-
-```text
-/openapi/v1.json
-```
-
----
-
-# Testing with cURL
-
-Swagger UI is the easiest way to explore the API, but the endpoints can also be tested directly.
+# Testing with PowerShell
 
 ## Get all robots
 
 ```powershell
-curl.exe http://localhost:5244/api/robots
+Invoke-RestMethod `
+    -Uri "http://localhost:8080/api/robots"
 ```
 
-## Filter by status
+## Get a robot by ID
 
 ```powershell
-curl.exe "http://localhost:5244/api/robots?status=Operational"
-```
-
-## Pagination
-
-```powershell
-curl.exe "http://localhost:5244/api/robots?page=1&pageSize=2"
-```
-
-## Get robot by ID
-
-```powershell
-curl.exe -i http://localhost:5244/api/robots/3
+Invoke-RestMethod `
+    -Uri "http://localhost:8080/api/robots/5"
 ```
 
 ## Create a robot
 
-PowerShell example:
-
 ```powershell
-curl.exe -i -X POST http://localhost:5244/api/robots `
-  -H "Content-Type: application/json" `
-  -d '{\"name\":\"Sentinel\",\"model\":\"ST-9\",\"status\":\"Operational\",\"lastMaintenance\":\"2026-08-10T00:00:00\",\"nextMaintenance\":\"2026-12-10T00:00:00\"}'
+$body = @{
+    name = "Vaultkeeper"
+    model = "PG-17"
+    status = "Operational"
+    lastMaintenance = "2026-09-07T00:00:00"
+    nextMaintenance = "2027-01-07T00:00:00"
+} | ConvertTo-Json
+
+$createdRobot = Invoke-RestMethod `
+    -Uri "http://localhost:8080/api/robots" `
+    -Method Post `
+    -ContentType "application/json" `
+    -Body $body
+
+$createdRobot
 ```
 
----
+# Verifying persistence
 
-# HTTP Status Codes
+Create a robot and then restart the API container:
 
-The API currently uses:
+```powershell
+docker compose restart api
+```
+
+Retrieve the robot again:
+
+```powershell
+Invoke-RestMethod `
+    -Uri "http://localhost:8080/api/robots/5"
+```
+
+Persistence can also be verified by removing and recreating the entire Compose stack:
+
+```powershell
+docker compose down
+docker compose up -d
+```
+
+The robot remains stored because PostgreSQL uses the `robot-postgres-data` volume.
+
+# pgAdmin
+
+Open pgAdmin at:
+
+```text
+http://localhost:5050
+```
+
+Login credentials:
+
+```text
+Email: admin@robotmaintenance.com
+Password: robotadminpassword
+```
+
+Register the PostgreSQL server using:
+
+```text
+Name: Robot PostgreSQL
+Host: postgres
+Port: 5432
+Database: robotmaintenance
+Username: robotadmin
+Password: robotpassword
+```
+
+The host is `postgres`, rather than `localhost`, because pgAdmin connects through the internal Docker network.
+
+These credentials are intended only for local development and demonstration.
+
+# OpenAPI and Swagger UI
+
+When the API runs in the Development environment:
+
+- Swagger UI is available at `/swagger`
+- The generated OpenAPI document is available at `/openapi/v1.json`
+
+The default Docker Compose environment is Production, so Swagger UI is not exposed through the container by default.
+
+# HTTP status codes
 
 | Status | Meaning |
 |---|---|
 | `200 OK` | Resource successfully retrieved |
-| `201 Created` | New robot successfully created |
+| `201 Created` | Robot successfully created |
 | `400 Bad Request` | Invalid input or query parameters |
-| `404 Not Found` | Requested robot does not exist |
+| `404 Not Found` | Robot does not exist |
 
----
+# Build without Docker
 
-# Database Development
-
-When the model changes, a new EF Core migration can be created with:
+Restore dependencies and compile the project:
 
 ```powershell
-dotnet ef migrations add MigrationName
+dotnet restore
+dotnet build
 ```
 
-Apply pending migrations with:
+Running the API directly requires an available PostgreSQL database and a valid `RobotDatabase` connection string.
 
-```powershell
-dotnet ef database update
-```
-
-The migration files are committed to Git so another developer can recreate the database schema locally.
-
-SQLite database files are intentionally excluded through `.gitignore`.
-
----
-
-# Possible Future Improvements
+# Possible future improvements
 
 Possible extensions include:
 
-- PUT/PATCH endpoint for updating robots
-- DELETE endpoint
+- Update endpoints
+- Delete endpoint
+- Maintenance history
 - Additional filtering and sorting
-- More advanced maintenance history
-- Repository layer
-- Automated xUnit tests
+- Automated unit tests
 - Integration tests
-- SQL Server or PostgreSQL
 - Authentication and authorization
-- Docker support
 
-These are outside the current project scope.
+These are outside the current assignment scope.
 
----
-
-## Assignment Goals Covered
+# Assignment requirements covered
 
 This project demonstrates:
 
-- A meaningful domain model
 - ASP.NET Core Controllers
-- GET endpoints
-- POST endpoint
-- Filtering
-- Pagination
+- REST endpoints
 - Input validation
 - HTTP status codes
-- ProblemDetails error responses
-- Asynchronous method design
-- Service layer
+- Asynchronous database operations
 - Dependency injection
 - DTO usage
 - Entity Framework Core
-- SQL-backed persistence with SQLite
+- PostgreSQL persistence
 - EF Core migrations
 - Seed data
-- OpenAPI documentation
-- Swagger UI
-- Manual API verification
-
-The project now covers both the core assignment requirements and several of the optional extensions.
+- Docker image creation
+- Docker Compose orchestration
+- PostgreSQL container setup
+- pgAdmin database inspection
+- Named-volume persistence
+- PostgreSQL health checking
+- API health checking
