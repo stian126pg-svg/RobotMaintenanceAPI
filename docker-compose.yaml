@@ -30,6 +30,14 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - curl --fail --silent http://localhost:8080/health > /dev/null || exit 1
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
 
   pgadmin:
     image: dpage/pgadmin4:9.17

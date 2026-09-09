@@ -28,6 +28,8 @@ builder.Services.AddDbContext<RobotDbContext>(options =>
 // should exist for the lifetime of a single request.
 builder.Services.AddScoped<IRobotService, RobotService>();
 
+builder.Services.AddHealthChecks();
+
 var app = builder.Build();
 
 // Apply pending database migrations when the API starts.
@@ -60,5 +62,7 @@ app.UseHttpsRedirection();
 app.UseAuthorization();
 
 app.MapControllers();
+
+app.MapHealthChecks("/health");
 
 app.Run();
