@@ -23,7 +23,7 @@ services:
       context: .
       dockerfile: Dockerfile
     environment:
-      ASPNETCORE_HTTP_PORTS: 8080
+      ASPNETCORE_HTTP_PORTS: "8080"
       ConnectionStrings__RobotDatabase: "Host=postgres;Port=5432;Database=robotmaintenance;Username=robotadmin;Password=robotpassword"
     ports:
       - "8080:8080"

@@ -28,6 +28,7 @@ builder.Services.AddDbContext<RobotDbContext>(options =>
 // should exist for the lifetime of a single request.
 builder.Services.AddScoped<IRobotService, RobotService>();
 
+// Register health checks for monitoring the API.
 builder.Services.AddHealthChecks();
 
 var app = builder.Build();
@@ -63,6 +64,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 
+// Expose the API health status at /health.
 app.MapHealthChecks("/health");
 
 app.Run();
