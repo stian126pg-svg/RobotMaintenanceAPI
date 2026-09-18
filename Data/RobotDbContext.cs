@@ -34,6 +34,7 @@ public class RobotDbContext : DbContext
             new Robot
             {
                 Id = 1,
+                OwnerId = "User A",
                 Name = "Atlas",
                 Model = "XR-7",
                 Status = "Operational",
@@ -43,6 +44,7 @@ public class RobotDbContext : DbContext
             new Robot
             {
                 Id = 2,
+                OwnerId = "User B",
                 Name = "Hammer",
                 Model = "MK-II",
                 Status = "NeedsMaintenance",
@@ -52,6 +54,7 @@ public class RobotDbContext : DbContext
             new Robot
             {
                 Id = 3,
+                OwnerId = "User A",
                 Name = "Bishop",
                 Model = "RX-12",
                 Status = "Operational",
@@ -61,6 +64,7 @@ public class RobotDbContext : DbContext
             new Robot
             {
                 Id = 4,
+                OwnerId = "User B",
                 Name = "Rustbucket",
                 Model = "MK-I",
                 Status = "OutOfService",
