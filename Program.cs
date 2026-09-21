@@ -30,6 +30,30 @@ builder.Services.AddAuthorization();
 builder.Services.AddOpenApi(options =>
 {
     options.AddDocumentTransformer<BearerSecuritySchemeTransformer>();
+
+    // Swagger UI cannot correctly validate integer path parameters
+    // represented as both "integer" and "string" in OpenAPI 3.1.
+    options.AddOperationTransformer(
+        (operation, context, cancellationToken) =>
+        {
+            if (operation.Parameters is null)
+            {
+                return Task.CompletedTask;
+            }
+
+            foreach (var parameter in operation.Parameters)
+            {
+                if (parameter.In == ParameterLocation.Path &&
+                    parameter.Schema is OpenApiSchema schema &&
+                    schema.Format == "int32")
+                {
+                    schema.Type = JsonSchemaType.Integer;
+                    schema.Pattern = null;
+                }
+            }
+
+            return Task.CompletedTask;
+        });
 });
 
 string connectionString =

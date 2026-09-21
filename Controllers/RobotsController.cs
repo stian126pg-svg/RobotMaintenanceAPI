@@ -1,3 +1,5 @@
+using System.Security.Claims;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using RobotMaintenanceApi.Dtos;
 using RobotMaintenanceApi.Model;
@@ -5,6 +7,7 @@ using RobotMaintenanceApi.Services;
 
 namespace RobotMaintenanceApi.Controllers;
 
+[Authorize]
 [ApiController]
 [Route("api/[controller]")]
 public class RobotsController : ControllerBase
@@ -21,6 +24,7 @@ public class RobotsController : ControllerBase
         typeof(IEnumerable<Robot>),
         StatusCodes.Status200OK)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<IEnumerable<Robot>>> GetRobots(
         string? status = null,
         int page = 1,
@@ -42,8 +46,16 @@ public class RobotsController : ControllerBase
                 detail: "Page size must be greater than or equal to 1.");
         }
 
+        string? ownerId = GetOwnerId();
+
+        if (string.IsNullOrWhiteSpace(ownerId))
+        {
+            return Unauthorized();
+        }
+
         IEnumerable<Robot> robots =
             await _robotService.GetAllAsync(
+                ownerId,
                 status,
                 page,
                 pageSize);
@@ -55,11 +67,21 @@ public class RobotsController : ControllerBase
     [ProducesResponseType(
         typeof(Robot),
         StatusCodes.Status200OK)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(StatusCodes.Status404NotFound)]
     public async Task<ActionResult<Robot>> GetRobot(int id)
     {
+        string? ownerId = GetOwnerId();
+
+        if (string.IsNullOrWhiteSpace(ownerId))
+        {
+            return Unauthorized();
+        }
+
         Robot? robot =
-            await _robotService.GetByIdAsync(id);
+            await _robotService.GetByIdAsync(
+                id,
+                ownerId);
 
         if (robot is null)
         {
@@ -74,6 +96,7 @@ public class RobotsController : ControllerBase
         typeof(Robot),
         StatusCodes.Status201Created)]
     [ProducesResponseType(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(StatusCodes.Status401Unauthorized)]
     public async Task<ActionResult<Robot>> CreateRobot(
         CreateRobotRequest request)
     {
@@ -95,6 +118,13 @@ public class RobotsController : ControllerBase
                     "Status must be Operational, NeedsMaintenance, or OutOfService.");
         }
 
+        string? ownerId = GetOwnerId();
+
+        if (string.IsNullOrWhiteSpace(ownerId))
+        {
+            return Unauthorized();
+        }
+
         Robot robot = new()
         {
             Name = request.Name,
@@ -105,11 +135,18 @@ public class RobotsController : ControllerBase
         };
 
         Robot createdRobot =
-            await _robotService.CreateAsync(robot);
+            await _robotService.CreateAsync(
+                robot,
+                ownerId);
 
         return CreatedAtAction(
             nameof(GetRobot),
             new { id = createdRobot.Id },
             createdRobot);
+    }
+
+    private string? GetOwnerId()
+    {
+        return User.FindFirstValue("sub");
     }
 }

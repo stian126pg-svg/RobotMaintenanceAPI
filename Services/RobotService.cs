@@ -14,12 +14,15 @@ public class RobotService : IRobotService
     }
 
     public async Task<IEnumerable<Robot>> GetAllAsync(
+        string ownerId,
         string? status,
         int page,
         int pageSize)
     {
         IQueryable<Robot> query =
-            _dbContext.Robots.AsNoTracking();
+            _dbContext.Robots
+                .AsNoTracking()
+                .Where(robot => robot.OwnerId == ownerId);
 
         if (!string.IsNullOrWhiteSpace(status))
         {
@@ -37,15 +40,23 @@ public class RobotService : IRobotService
             .ToListAsync();
     }
 
-    public async Task<Robot?> GetByIdAsync(int id)
+    public async Task<Robot?> GetByIdAsync(
+        int id,
+        string ownerId)
     {
         return await _dbContext.Robots
             .AsNoTracking()
-            .FirstOrDefaultAsync(robot => robot.Id == id);
+            .FirstOrDefaultAsync(robot =>
+                robot.Id == id &&
+                robot.OwnerId == ownerId);
     }
 
-    public async Task<Robot> CreateAsync(Robot robot)
+    public async Task<Robot> CreateAsync(
+        Robot robot,
+        string ownerId)
     {
+        robot.OwnerId = ownerId;
+
         _dbContext.Robots.Add(robot);
 
         await _dbContext.SaveChangesAsync();
