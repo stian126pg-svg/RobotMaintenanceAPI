@@ -1,7 +1,7 @@
 # Architecture Review
 
 
-## Part 1 â€“ How the system works today
+## Part 1 How the system works today
 
 RobotMaintenanceAPI is a REST API that receives "requests" about robots. It uses PostgreSQL to store robot data. Docker Compose starts the parts needed to run the project locally.
 
