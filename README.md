@@ -165,6 +165,7 @@ GET /api/robots/3
 Possible responses:
 
 - `200 OK`
+- `401 Unauthorized`
 - `404 Not Found`
 
 ## POST /api/robots
@@ -440,7 +441,7 @@ The default Docker Compose environment is Production, so Swagger UI is not expos
 | `200 OK` | Resource successfully retrieved |
 | `201 Created` | Robot successfully created |
 | `400 Bad Request` | Invalid input or query parameters |
-| `401 Bad Request` | Unauthorized |
+| `401 Unauthorized` | Missing or invalid bearer token |
 | `404 Not Found` | Robot does not exist |
 
 # Build without Docker
