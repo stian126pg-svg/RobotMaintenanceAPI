@@ -4,7 +4,7 @@ services:
     environment:
       POSTGRES_DB: robotmaintenance
       POSTGRES_USER: robotadmin
-      POSTGRES_PASSWORD: robotpassword
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}
     ports:
       - "5432:5432"
     volumes:
@@ -24,7 +24,7 @@ services:
       dockerfile: Dockerfile
     environment:
       ASPNETCORE_HTTP_PORTS: "8080"
-      ConnectionStrings__RobotDatabase: "Host=postgres;Port=5432;Database=robotmaintenance;Username=robotadmin;Password=robotpassword"
+      ConnectionStrings__RobotDatabase: "Host=postgres;Port=5432;Database=robotmaintenance;Username=robotadmin;Password=${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
     ports:
       - "8080:8080"
     depends_on:
@@ -43,7 +43,7 @@ services:
     image: dpage/pgadmin4:9.17
     environment:
       PGADMIN_DEFAULT_EMAIL: admin@robotmaintenance.com
-      PGADMIN_DEFAULT_PASSWORD: robotadminpassword
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_PASSWORD:?Set PGADMIN_PASSWORD in .env}
       PGADMIN_DISABLE_POSTFIX: "true"
     ports:
       - "5050:80"
